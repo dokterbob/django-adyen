@@ -8,8 +8,7 @@ class PaymentInterface(object):
     """
     Wrapper around Adyen API calls.
 
-    This object is stateless and does not use any settings, hence it can be
-    used easily in non-Django applications.
+    This object is stateless and can be used independently from Django.
     """
 
     # URL's for single- and multi-page checkouts (test and production)
@@ -22,7 +21,7 @@ class PaymentInterface(object):
     PROD_URL_MULTIPLE = TEST_URL_BASE + 'select.shtml'
 
     # Fields used for signing payment requests
-    REQUEST_SIGNATURE_FIELDS = \
+    SESSION_SIGNATURE_FIELDS = \
         ('paymentAmount', 'currencyCode', 'shipBeforeDate',
          'merchantReference', 'skinCode', 'merchantAccount',
          'sessionValidity', 'shopperEmail', 'shopperReference',
@@ -39,10 +38,10 @@ class PaymentInterface(object):
     RESULT_SIGNATURE_FIELDS = \
         ('authResult', 'pspReference', 'merchantReference', 'skinCode')
 
-    def __init__(self):
-        """
-        Initialize the interface.
-        """
+    # Required fields for setting up a payment session, except `merchantSig`
+    SESSION_REQUIRED_FIELDS = \
+        ('merchantReference', 'paymentAmount', 'currencyCode',
+         'shipBeforeDate', 'skinCode', 'merchantAccount', 'sessionValidity')
 
     @staticmethod
     def _sign_plaintext(plaintext, secret):
@@ -69,4 +68,3 @@ class PaymentInterface(object):
             plaintext += data.get(field, '')
 
         return plaintext
-
