@@ -5,6 +5,8 @@ import base64
 import hmac
 from hashlib import sha1
 
+from urllib import urlencode
+
 
 class PaymentInterface(object):
     """
@@ -14,13 +16,10 @@ class PaymentInterface(object):
     """
 
     # URL's for single- and multi-page checkouts (test and production)
-    TEST_URL_BASE = 'https://test.adyen.com/hpp/'
-    TEST_URL_SINGLE = TEST_URL_BASE + 'pay.shtml'
-    TEST_URL_MULTIPLE = TEST_URL_BASE + 'select.shtml'
-
-    PROD_URL_BASE = 'https://live.adyen.com/hpp/'
-    PROD_URL_SINGLE = TEST_URL_BASE + 'pay.shtml'
-    PROD_URL_MULTIPLE = TEST_URL_BASE + 'select.shtml'
+    URL_BASE_TEST = 'https://test.adyen.com/hpp/'
+    URL_BASE_LIVE = 'https://live.adyen.com/hpp/'
+    URL_SINGLE = 'pay.shtml'
+    URL_MULTIPLE = 'select.shtml'
 
     # Fields used for signing payment requests
     SESSION_SIGNATURE_FIELDS = \
@@ -50,9 +49,11 @@ class PaymentInterface(object):
         ('authResult', 'pspReference', 'merchantReference', 'skinCode',
          'merchantSig', 'paymentMethod', 'shopperLocale'))
 
-    def __init__(self, secret, data):
+    def __init__(self, secret, data, testing=True, onepage=True):
         self.secret = secret
         self.data = data
+        self.testing = testing
+        self.onepage = onepage
 
     def _sign_plaintext(self, plaintext):
         """
@@ -74,6 +75,30 @@ class PaymentInterface(object):
             plaintext += self.data.get(field, '')
 
         return plaintext
+
+    def get_session_url(self):
+        if self.testing:
+            baseurl = self.URL_BASE_TEST
+        else:
+            baseurl = self.URL_BASE_LIVE
+
+        if self.onepage:
+            return baseurl + self.URL_SINGLE
+        else:
+            return baseurl + self.URL_MULTIPLE
+
+    def get_redirect_url(self):
+        """
+        Construct the redirect URL for starting a payment.
+        """
+
+        # Make sure a signature is present in the data
+        assert self.data.has_key('merchantSig')
+        params = urlencode(self.data)
+
+        session_url = self.get_session_url()
+
+        return session_url + '?' + params
 
     def sign(self):
         """
@@ -110,6 +135,9 @@ class PaymentInterface(object):
         Validate the data signature for a payment result. Returns True when
         the signature is valid, False otherwise.
         """
+
+        data_fields = self.data.keys()
+
         # Make sure all expected fields are in the result
         assert self.RESULT_REQUIRED_FIELDS.issubset(data_fields), \
             'Not all expected fields are present.'
