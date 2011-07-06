@@ -36,14 +36,19 @@ class PaymentInterface(object):
          'billingAddress.city', 'billingAddress.postalCode',
          'billingAddress.stateOrProvince', 'billingAddress.country')
 
-    # Fields used for verification of result signatures
-    RESULT_SIGNATURE_FIELDS = \
-        ('authResult', 'pspReference', 'merchantReference', 'skinCode')
-
     # Required fields for setting up a payment session, except `merchantSig`
     SESSION_REQUIRED_FIELDS = frozenset(
         ('merchantReference', 'paymentAmount', 'currencyCode',
          'shipBeforeDate', 'skinCode', 'merchantAccount', 'sessionValidity'))
+
+    # Fields used for verification of result signatures
+    RESULT_SIGNATURE_FIELDS = \
+        ('authResult', 'pspReference', 'merchantReference', 'skinCode')
+
+    # Fields expected to be contained in the results
+    RESULT_REQUIRED_FIELDS = frozenset(
+        ('authResult', 'pspReference', 'merchantReference', 'skinCode',
+         'merchantSig', 'paymentMethod', 'shopperLocale'))
 
     def __init__(self, secret, data):
         self.secret = secret
@@ -105,6 +110,10 @@ class PaymentInterface(object):
         Validate the data signature for a payment result. Returns True when
         the signature is valid, False otherwise.
         """
+        # Make sure all expected fields are in the result
+        assert self.RESULT_REQUIRED_FIELDS.issubset(data_fields), \
+            'Not all expected fields are present.'
+
         plaintext = self._data_to_plaintext(self.RESULT_SIGNATURE_FIELDS)
         signature = self._sign_plaintext(plaintext)
 
