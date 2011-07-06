@@ -1,6 +1,10 @@
 import logging
 logger = logging.getLogger(__name__)
 
+import base64
+import hmac
+from hashlib import sha1
+
 from adyen import settings
 
 
@@ -39,27 +43,26 @@ class PaymentInterface(object):
         ('authResult', 'pspReference', 'merchantReference', 'skinCode')
 
     # Required fields for setting up a payment session, except `merchantSig`
-    SESSION_REQUIRED_FIELDS = \
+    SESSION_REQUIRED_FIELDS = frozenset(
         ('merchantReference', 'paymentAmount', 'currencyCode',
-         'shipBeforeDate', 'skinCode', 'merchantAccount', 'sessionValidity')
+         'shipBeforeDate', 'skinCode', 'merchantAccount', 'sessionValidity'))
 
-    @staticmethod
-    def _sign_plaintext(plaintext, secret):
+    def __init__(self, secret):
+        self.secret = secret
+
+    def _sign_plaintext(self, plaintext):
         """
-        Sign the string `plaintext` with a given `secret` using HMAC and
+        Sign the string `plaintext` with the shared secret using HMAC and
         encode the result as a base64 encoded string.
 
         Source: Adyen Python signature implementation example.
         """
-        import base64
-        import hmac
-        import hashlib
 
-        hm = hmac.new(secret, data, hashlib.sha1)
+        hm = hmac.new(self.secret, plaintext, sha1)
         return base64.encodestring(hm.digest()).strip()
 
-    @staticmethod
-    def _data_to_plaintext(data, fields):
+    @classmethod
+    def _data_to_plaintext(cls, data, fields):
         """
         Concatenate the specified `fields` from the `data` dictionary.
         """
@@ -68,3 +71,32 @@ class PaymentInterface(object):
             plaintext += data.get(field, '')
 
         return plaintext
+
+    def sign_session_data(self, data):
+        """ Sign data. """
+
+        data_fields = data.keys()
+
+        # Make sure all required fields are filled in
+        assert self.SESSION_REQUIRED_FIELDS.issubset(data_fields), \
+            'Not all required fields are set.'
+
+        plaintext = self._data_to_plaintext(data,
+                                            self.SESSION_SIGNATURE_FIELDS)
+
+        # Set the merchant signature in data
+        data['merchantSig'] = self._sign_plaintext(plaintext)
+
+        # See whether one of the billing address fields are set
+        # If so, calculate the billing address signature.
+        for address_field in self.ADDRESS_SIGNATURE_FIELDS:
+            if address_field in data_fields:
+                billing_plaintext = \
+                    self._data_to_plaintext(data,
+                                            self.ADDRESS_SIGNATURE_FIELDS)
+                data['billingAddressSig'] = \
+                    self._sign_plaintext(billing_plaintext)
+
+                # No need to continue, we already calculated the signature
+                # for all billing fields
+                break
