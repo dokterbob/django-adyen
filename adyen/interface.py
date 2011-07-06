@@ -71,7 +71,10 @@ class PaymentInterface(object):
         return plaintext
 
     def sign(self):
-        """ Sign data. """
+        """
+        Add required signatures to the session data dictionary. The given
+        dictionary is updated in-place.
+        """
 
         data_fields = self.data.keys()
 
@@ -96,3 +99,18 @@ class PaymentInterface(object):
                 # No need to continue, we already calculated the signature
                 # for all billing fields
                 break
+
+    def validate(self):
+        """
+        Validate the data signature for a payment result. Returns True when
+        the signature is valid, False otherwise.
+        """
+        plaintext = self._data_to_plaintext(self.RESULT_SIGNATURE_FIELDS)
+        signature = self._sign_plaintext(plaintext)
+
+        if not signature == self.data['merchantSig']:
+            return False
+
+        return True
+
+
