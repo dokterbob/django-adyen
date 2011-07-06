@@ -39,20 +39,10 @@ class PaymentInterface(object):
     RESULT_SIGNATURE_FIELDS = \
         ('authResult', 'pspReference', 'merchantReference', 'skinCode')
 
-    def __init__(self, params=None, request=None):
+    def __init__(self):
         """
         Initialize the interface.
         """
-        assert request or params, \
-            'Please specify either a request or a set of parameters'
-
-        if not params:
-            params = request.REQUEST
-
-        self.params = params
-
-        # We haven't parsed anything yet
-        self.parsed = False
 
     @staticmethod
     def _sign_plaintext(plaintext, secret):
@@ -79,3 +69,4 @@ class PaymentInterface(object):
             plaintext += data.get(field, '')
 
         return plaintext
+
