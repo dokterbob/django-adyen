@@ -5,8 +5,6 @@ import base64
 import hmac
 from hashlib import sha1
 
-from adyen import settings
-
 
 class PaymentInterface(object):
     """
@@ -47,8 +45,9 @@ class PaymentInterface(object):
         ('merchantReference', 'paymentAmount', 'currencyCode',
          'shipBeforeDate', 'skinCode', 'merchantAccount', 'sessionValidity'))
 
-    def __init__(self, secret):
+    def __init__(self, secret, data):
         self.secret = secret
+        self.data = data
 
     def _sign_plaintext(self, plaintext):
         """
@@ -61,40 +60,37 @@ class PaymentInterface(object):
         hm = hmac.new(self.secret, plaintext, sha1)
         return base64.encodestring(hm.digest()).strip()
 
-    @classmethod
-    def _data_to_plaintext(cls, data, fields):
+    def _data_to_plaintext(self, fields):
         """
         Concatenate the specified `fields` from the `data` dictionary.
         """
         plaintext = ''
         for field in fields:
-            plaintext += data.get(field, '')
+            plaintext += self.data.get(field, '')
 
         return plaintext
 
-    def sign_session_data(self, data):
+    def sign(self):
         """ Sign data. """
 
-        data_fields = data.keys()
+        data_fields = self.data.keys()
 
         # Make sure all required fields are filled in
         assert self.SESSION_REQUIRED_FIELDS.issubset(data_fields), \
             'Not all required fields are set.'
 
-        plaintext = self._data_to_plaintext(data,
-                                            self.SESSION_SIGNATURE_FIELDS)
+        plaintext = self._data_to_plaintext(self.SESSION_SIGNATURE_FIELDS)
 
         # Set the merchant signature in data
-        data['merchantSig'] = self._sign_plaintext(plaintext)
+        self.data['merchantSig'] = self._sign_plaintext(plaintext)
 
         # See whether one of the billing address fields are set
         # If so, calculate the billing address signature.
         for address_field in self.ADDRESS_SIGNATURE_FIELDS:
             if address_field in data_fields:
                 billing_plaintext = \
-                    self._data_to_plaintext(data,
-                                            self.ADDRESS_SIGNATURE_FIELDS)
-                data['billingAddressSig'] = \
+                    self._data_to_plaintext(self.ADDRESS_SIGNATURE_FIELDS)
+                self.data['billingAddressSig'] = \
                     self._sign_plaintext(billing_plaintext)
 
                 # No need to continue, we already calculated the signature
