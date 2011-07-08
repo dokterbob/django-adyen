@@ -31,7 +31,7 @@ class SessionTest(TestCase):
          'shopperLocale': 'en_GB',
          'merchantSig': 'ytt3QxWoEhAskUzUne0P5VA9lPw='}
 
-    def test_signature_simple(self):
+    def test_signature(self):
         """ Test the signature against documentation examples. """
         interface = PaymentInterface(self.secret, self.session_data)
         interface.sign()
@@ -61,10 +61,20 @@ class SessionTest(TestCase):
 
         self.assertFalse(interface.validate())
 
-    def test_session(self):
-        """ Test whether initiating a payment session works. """
-        pass
+    def test_validation_unicode(self):
+        """
+        Make sure validation still works if we pass along weird unicode
+        characters.
+        """
+        weird_string = u'Was\x9f'
 
-    def test_result(self):
-        """ Test whether a result call gets processed in the right way. """
-        pass
+        difficult_data = self.session_data.copy()
+        difficult_data['merchantReference'] = weird_string
+
+        interface = PaymentInterface(self.secret, difficult_data)
+
+        interface.sign()
+
+        # TODO: Check whether the signature matches the result in the
+        # testing situation
+
