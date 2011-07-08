@@ -5,6 +5,9 @@ import base64
 import hmac
 from hashlib import sha1
 
+from decimal import Decimal
+from datetime import datetime, date
+
 from urllib import urlencode
 
 
@@ -54,6 +57,53 @@ class PaymentInterface(object):
         self.data = data
         self.testing = testing
         self.onepage = onepage
+
+        # Make sure we convert any data from native Python formats to
+        # the format required by Adyen.
+        self.convert()
+
+    @classmethod
+    def _convert_date(cls, value):
+        """ Convert a given date to proper format. """
+
+        if isinstance(value, date):
+            return value.isoformat()
+
+        return unicode(value)
+
+    @classmethod
+    def _convert_datetime(cls, value):
+        """
+        Convert a given datetime to proper format. In this case, we'll act a
+        little sneaky and convert the given datetime to UTC just ot be sure
+        it gets interpreted in the right way.
+        """
+
+        if isinstance(value, datetime):
+            return value.isoformat()
+
+        return unicode(value)
+    @classmethod
+    def _convert_amount(cls, amount):
+        """ Convert a given amount to the proper format. """
+
+        if isinstance(amount, Decimal):
+            amount = amount.shift(2).to_integral()
+
+        assert int(amount), 'Cannot case amount to integer'
+
+        return unicode(amount)
+
+    def _convert_field(self, field, converter):
+        """ If existant, convert the given field or fields in self.data. """
+        if field in self.data:
+            self.data[field] = converter(self.data[field])
+
+    def convert(self):
+        """ Attempt to convert eligible elements from native Python types. """
+        self._convert_field('paymentAmount', self._convert_amount)
+        self._convert_field('shipBeforeDate', self._convert_date)
+        self._convert_field('sessionValidity', self._convert_datetime)
 
     def _sign_plaintext(self, plaintext):
         """
