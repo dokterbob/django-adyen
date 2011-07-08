@@ -72,7 +72,7 @@ class PaymentInterface(object):
         """
         plaintext = ''
         for field in fields:
-            plaintext += self.data.get(field, '')
+            plaintext += self.data.get(field, '').encode('utf-8')
 
         return plaintext
 
