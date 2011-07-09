@@ -40,4 +40,9 @@ class AdyenForm(HiddinInputForm):
 
         super(AdyenForm, self).__init__(new_data, *args, **kwargs)
 
+   def get_post_url(self):
+       """ Get URL for posting the form. """
+
+       return self.interface.get_session_url()
+
 
