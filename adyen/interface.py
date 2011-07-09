@@ -6,7 +6,7 @@ import hmac
 from hashlib import sha1
 
 from decimal import Decimal
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 from urllib import urlencode
 
@@ -72,15 +72,29 @@ class PaymentInterface(object):
         return unicode(value)
 
     @classmethod
-    def _convert_datetime(cls, value):
+    def _convert_validity(cls, value):
         """
         Convert a given datetime to proper format. In this case, we'll act a
         little sneaky and convert the given datetime to UTC just ot be sure
         it gets interpreted in the right way.
+
+        If the value is a timedelta, this is interpreted as a given amount of
+        time from now.
         """
 
         if isinstance(value, datetime):
             return value.isoformat()
+
+        if isinstance(value, timedelta):
+            # Take the current moment and set hte microseconds to zero
+            now = datetime.utcnow()
+            now = now.replace(microsecond=0)
+
+            new = now + value
+
+            # Make sure we return the result in timezone 'Zulu' (=UTC), just
+            # as in documentation.
+            return new.isoformat() + 'Z'
 
         return unicode(value)
     @classmethod
@@ -103,7 +117,7 @@ class PaymentInterface(object):
         """ Attempt to convert eligible elements from native Python types. """
         self._convert_field('paymentAmount', self._convert_amount)
         self._convert_field('shipBeforeDate', self._convert_date)
-        self._convert_field('sessionValidity', self._convert_datetime)
+        self._convert_field('sessionValidity', self._convert_validity)
 
     def _sign_plaintext(self, plaintext):
         """

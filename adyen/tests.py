@@ -86,6 +86,19 @@ class SessionTest(TestCase):
         signature = interface.data['merchantSig']
         self.assertEquals(signature, 'UC1ta2YCoMvvQYmJrBvGGshMb5E=')
 
+        # Now to test with sessionValidity as a timedelta
+
+        native_data2 = native_data.copy()
+        native_data2.update({
+            'sessionValidity': timedelta(0)
+        })
+
+        now = datetime.utcnow()
+        now_formatted = now.replace(microsecond=0).isoformat() + 'Z'
+
+        interface = PaymentInterface(self.secret, native_data2)
+        self.assertEquals(interface.data['sessionValidity'], now_formatted)
+
 
     def test_validation(self):
         """ Create a signature and check whether validation succeeds. """
