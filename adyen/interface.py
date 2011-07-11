@@ -53,6 +53,11 @@ class PaymentInterface(object):
          'merchantSig', 'paymentMethod', 'shopperLocale'))
 
     def __init__(self, secret, data, testing=True, onepage=True):
+        assert dict(data), 'Data not a dict-like object.'
+        assert str(secret), 'Secret not a string-like object.'
+        assert bool(testing)
+        assert bool(onepage)
+
         self.secret = secret
         self.data = data
         self.testing = testing
@@ -118,6 +123,10 @@ class PaymentInterface(object):
         self._convert_field('paymentAmount', self._convert_amount)
         self._convert_field('shipBeforeDate', self._convert_date)
         self._convert_field('sessionValidity', self._convert_validity)
+
+        # Make sure it's all unicode strings from here on
+        for field in self.data.keys():
+            self.data[field] = unicode(self.data[field])
 
     def _sign_plaintext(self, plaintext):
         """

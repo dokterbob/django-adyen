@@ -32,11 +32,11 @@ class AdyenForm(HiddinInputForm):
 
         # Create an interface and sign the data - this updates the data
         # in-place
-        self.interface = PaymentInterface(new_data,
-                                          settings.MERCHANT_SECRET,
+        self.interface = PaymentInterface(secret=settings.MERCHANT_SECRET,
+                                          data=new_data,
                                           testing=settings.DEBUG,
                                           onepage=settings.ONE_PAGE)
-        self.interfaec.sign()
+        self.interface.sign()
 
         super(AdyenForm, self).__init__(new_data, *args, **kwargs)
 
