@@ -49,8 +49,8 @@ class PaymentInterface(object):
 
     # Fields expected to be contained in the results
     RESULT_REQUIRED_FIELDS = frozenset(
-        ('authResult', 'pspReference', 'merchantReference', 'skinCode',
-         'merchantSig', 'paymentMethod', 'shopperLocale'))
+        ('authResult', 'merchantReference', 'skinCode',
+         'merchantSig', 'shopperLocale'))
 
     def __init__(self, secret, data, testing=True, onepage=True):
         assert dict(data), 'Data not a dict-like object.'
