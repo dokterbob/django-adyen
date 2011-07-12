@@ -107,7 +107,7 @@ class PaymentInterface(object):
         """ Convert a given amount to the proper format. """
 
         if isinstance(amount, Decimal):
-            amount = amount.shift(2).to_integral()
+            amount = amount.shift(Decimal('2')).to_integral()
 
         assert int(amount), 'Cannot case amount to integer'
 
