@@ -1,7 +1,7 @@
 from django import forms
 
-from adyen.interface import PaymentInterface
 from adyen import settings
+from adyen.utils import get_payment_interface
 
 
 class HiddinInputForm(forms.Form):
@@ -32,11 +32,9 @@ class AdyenForm(HiddinInputForm):
 
         # Create an interface and sign the data - this updates the data
         # in-place
-        self.interface = PaymentInterface(new_data,
-                                          settings.MERCHANT_SECRET,
-                                          testing=settings.DEBUG,
-                                          onepage=settings.ONE_PAGE)
-        self.interfaec.sign()
+        self.interface = get_payment_interface(data=new_data)
+
+        self.interface.sign()
 
         super(AdyenForm, self).__init__(new_data, *args, **kwargs)
 

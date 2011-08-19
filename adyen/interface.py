@@ -49,10 +49,15 @@ class PaymentInterface(object):
 
     # Fields expected to be contained in the results
     RESULT_REQUIRED_FIELDS = frozenset(
-        ('authResult', 'pspReference', 'merchantReference', 'skinCode',
-         'merchantSig', 'paymentMethod', 'shopperLocale'))
+        ('authResult', 'merchantReference', 'skinCode',
+         'merchantSig', 'shopperLocale'))
 
     def __init__(self, secret, data, testing=True, onepage=True):
+        assert dict(data), 'Data not a dict-like object.'
+        assert str(secret), 'Secret not a string-like object.'
+        assert bool(testing)
+        assert bool(onepage)
+
         self.secret = secret
         self.data = data
         self.testing = testing
@@ -102,7 +107,7 @@ class PaymentInterface(object):
         """ Convert a given amount to the proper format. """
 
         if isinstance(amount, Decimal):
-            amount = amount.shift(2).to_integral()
+            amount = amount.shift(Decimal('2')).to_integral()
 
         assert int(amount), 'Cannot case amount to integer'
 
@@ -118,6 +123,10 @@ class PaymentInterface(object):
         self._convert_field('paymentAmount', self._convert_amount)
         self._convert_field('shipBeforeDate', self._convert_date)
         self._convert_field('sessionValidity', self._convert_validity)
+
+        # Make sure it's all unicode strings from here on
+        for field in self.data.keys():
+            self.data[field] = unicode(self.data[field])
 
     def _sign_plaintext(self, plaintext):
         """
